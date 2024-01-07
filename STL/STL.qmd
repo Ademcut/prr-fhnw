@@ -1,0 +1,15 @@
+---
+title: "STL"
+author: "Adem Cutura"
+format: pdf
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+dataset <- read.csv('/Users/adem/prr-fhnw/CSV/Microsoft_Stock.csv')
+```
+
