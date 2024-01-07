@@ -1,0 +1,129 @@
+ARIMA
+
+
+
+Running Code
+
+When you click the Render button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+{r}
+library(tidyverse)
+library(tseries)
+library(forecast)
+
+Zuerst lesen wir den Datensatz unserer Aktie ein und speichern die Spalten Date und Close in ein neuen Dataframe ein. Close zeigt uns den Schlusspreis der Aktie für den Tag (Date) an.
+
+{r}
+dataset <- read.csv("/Users/ilyas/Projects/prr-fhnw/CSV/Microsoft_Stock.csv")
+
+dataset_close <- dataset["Close"]
+dataset_close
+
+
+Wir überprüfen den Datensatz erstmal auf stationarität. Dafür plotten wir den Graphen.
+
+{r}
+plot.ts(dataset_close)
+
+Um es endgültig auf Stationarität zu testen nutzen wir den adf.test. Dafür müssen wir unseren Dataframe in ein time series umwandeln.
+
+{r}
+tsclose <- ts(dataset$Close)
+adf.test(tsclose)
+
+Wir können herauslesen, dass der p-Wert über 5% liegt und somit unsere Graphenverlauf nicht stationär ist. Wir können aktuell keine Analyse für unser time series ausführen. Um das machen zu können, konvertieren wir unsere Daten zu stationären Daten.
+
+{r}
+rtsclose = diff(log(tsclose))
+plot.ts(rtsclose)
+
+Wenn wir bei x = 0 eine horizontale Linie setzen würden, sehen wir, dass der Mittelwert bei ungefähr 0 liegt. Damit können wir eine Stationarität bestätigen.
+
+Jetzt sind die Vorbereitungen für eine Analyse der Time Series erledigt.
+
+{r}
+adf.test(rtsclose)
+
+Unser p-Wert ist jetzt unter 0.05, was bedeutet, dass unser überarbeiteter Datensatz stationör ist.
+
+Welches ARIMA Modell ist jetzt aber am besten?
+
+Die Antwort auf diese Frage:
+
+{r}
+auto.arima(rtsclose)
+
+Unsere Kalkulation sagt uns, das das beste passende Modell ARIMA(1, 0, 0) ist.
+
+Jetzt können wir mit den erhaltenen Informationen unser ARIMA Modell erstellen:
+
+{r}
+arima_close = arima(rtsclose, order = c(1, 0, 0))
+arima_close
+
+Die Koeffizienten für unser ARIMA Modell wurden kreiert. Jetzt müssen wir nur noch unsere Gleichung aufstellen:
+
+rtsclose = intercept + (ar1) rtsclose(t-1) + (ar2) rtsclose(t-2) + + (ma1) et-1
+
+rtsclose = intercept + (-0.2249)rtsclose(t-1)
+
+Jetzt führen wir eine Diagnoseprüfung durch (notwendiger Zwischenschritt):
+
+{r}
+e1 = residuals(arima_close)
+
+#Korrelationsfunktion
+acf(e1)
+
+Wir sehen einen Graphen, der die Residenz zeigt. Die blaue gestrichelte Linie sind die controle-lines. Die einzelnen Striche, die vertikal ab x=0 verlaufen, spielen erst dann eine Rolle, wenn sie mit unseren controle-lines überschneiden. Wir haben überschneidungen bei ca. y = 6, 8, 15, etc . Das bedeutet, das wir in regelmässigen Abständen eine Korrelation zeigen können.
+
+Wir überprüfen an welchen Punkten die residuals einen konstanten Mittelwert bei 0 haben.
+
+{r}
+plot.ts(e1)
+
+Wir können einen konstanten Mittelwert bei 0 erkennen, das heisst, dass wir einen Schritt weiter gehen dürfen in unserer ARIMA Analyse.
+
+Wir plotten ein Histogramm, um die Verteilung unserer Reste anzuzeigen.
+
+{r}
+gghistogram(e1)
+
+Wir erkennen eine Normalverteilung.
+
+Ergebnis: Die residuals sind normalverteilt, Mittelwert bei 0 und nicht korreliert.
+
+{r}
+Box.test(e1, lag = 10, type = c("Box-Pierce", "Ljung-Box"), fitdf = 1) 
+
+Unsere Nullhypothese ist:
+
+H0 = residuals follow IID
+
+independant = IID
+
+p-Wert kleiner als 5% -> korrelation zwischen residuals
+
+Vorhersage mit ARIMA:
+
+{r}
+# how many mediums i want to forecast 
+forecast = forecast(arima_close, h = 30)
+forecast
+
+Wir sehen die Vorhersage der nächsten 30 Werte. Point Forecast zeigt uns die Werte und Lo/Hi 80 den Unteren/Oberen Limit bei 80% und Lo/Hi 95 den Unteren/Oberen Limit bei 95%.
+
+Wir plotten unsere Vorhersage:
+
+{r}
+plot(forecast)
+
+Wir sehen unsere Daten + die Vorhersage.
+
+Unsere Vorhersage besteht aus folgenden Parametern:
+
+blaue Linie: unsere Werte für die nächsten 30 Werte
+
+dunkelgraue Linie: Lo80 und Hi80
+
+hellgraue Linie: Lo95 und Hi95
